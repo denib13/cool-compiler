@@ -201,6 +201,10 @@
       | OBJECTID ':' TYPEID ';'
       {
         $$ = attr($1, $3, 0);
+      }
+      | OBJECTID ':' TYPEID '[' '<' '-' expression ']'
+      {
+        $$ = attr($1, $3, $7);
       };
 
 
@@ -238,7 +242,63 @@
         $$ = nil_Expressions();
       };
     expression
-      :
+      : IF expression THEN expression ELSE expression FI
+      {
+        $$ = cond($2, $4, $6);
+      }
+      | WHILE expression LOOP expression POOL
+      {
+        $$ = loop($2, $4);
+      }
+      | NEW TYPEID
+      {
+        $$ = new_($2);
+      }
+      | expression '+' expression
+      {
+        $$ = plus($1, $3);
+      }
+      | expression '-' expression
+      {
+        $$ = sub($1, $3);
+      }
+      | expression '*' expression
+      {
+        $$ = mul($1, $3);
+      }
+      | expression '/' expression
+      {
+        $$ = divide($1, $3);
+      }
+      | '~' expression
+      {
+        $$ = neg($2);
+      }
+      | expression '<' expression
+      {
+        $$ = lt($1, $3);
+      }
+      | expression '<' '=' expression
+      {
+        $$ = leq($1, $4);
+      }
+      | expression '=' expression
+      {
+        $$ = eq($1, $3);
+      }
+      | STR_CONST
+      {
+        $$ = string_const($1);
+      }
+      | INT_CONST
+      {
+        $$ = int_const($1);
+      }
+      | BOOL_CONST
+      {
+        $$ = bool_const($1);
+      }
+      |
       {
         $$ = no_expr();
       };

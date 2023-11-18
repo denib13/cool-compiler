@@ -30,6 +30,7 @@
 	-1 (ifexpressionblock)	 if expression with a block
 	-1 (ifnested)	 nested ifs
 	-1 (ifnoelsebranch)	 if expression with no else expression
+	-1 (ifnothenbranch)	 if expression with no then branch
 	-1 (isvoidbadtype)	 isvoid called on a type
 	-1 (letassociativity)	 testing let associativity
 	-1 (letinit)	 let expression with an initialization
