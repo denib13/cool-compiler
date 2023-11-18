@@ -1,0 +1,13 @@
+/pa1/*
+!pa1/cool.flex
+!pa1/grading/
+pa1/grading/*
+!pa1/grading/RESULTS
+!pa1/grading/SCORE
+
+/pa2/*
+!pa2/cool.y
+!pa2/grading/
+pa2/grading/*
+!pa2/grading/RESULTS
+!pa2/grading/SCORE
