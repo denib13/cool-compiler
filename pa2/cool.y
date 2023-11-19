@@ -198,13 +198,13 @@
       {
         $$ = method($1, $3, $6, $8);
       }
+      | OBJECTID ':' TYPEID '<' '-' expression
+      {
+        $$ = attr($1, $3, $6);
+      }
       | OBJECTID ':' TYPEID ';'
       {
         $$ = attr($1, $3, 0);
-      }
-      | OBJECTID ':' TYPEID '[' '<' '-' expression ']'
-      {
-        $$ = attr($1, $3, $7);
       };
 
 
@@ -242,7 +242,38 @@
         $$ = nil_Expressions();
       };
     expression
-      : IF expression THEN expression ELSE expression FI
+      : OBJECTID '<' '-' expression
+      {
+        $$ = assign($1, $4);
+      }
+      | expression '.' OBJECTID '('')'
+      {
+        $$ = dispatch($1, $3, nil_Expressions());
+      }
+      | expression '.' OBJECTID '(' expression_list ')'
+      {
+        $$ = dispatch($1, $3, $5);
+      }
+      | expression '@' TYPEID '.' OBJECTID '(' ')'
+      {
+        $$ = static_dispatch($1, $3, $5, nil_Expressions());
+      }
+      | expression '@' TYPEID '.' OBJECTID '(' expression_list ')'
+      {
+        $$ = static_dispatch($1, $3, $5, $7);
+      }
+      /*
+      | OBJECTID '(' ')'
+      {
+        $$ = dispatch(nil_Expressions(), $1, nil_Expressions());
+      }
+      | OBJECTID '(' expression_list ')'
+      {
+        $$ = dispatch(nil_Expressions(), $1, $3);
+      }
+      // can't find proper constructor for these two?
+      */
+      | IF expression THEN expression ELSE expression FI
       {
         $$ = cond($2, $4, $6);
       }
@@ -250,9 +281,17 @@
       {
         $$ = loop($2, $4);
       }
+      | '{' expression_list ';' '}'
+      {
+        $$ = block($2);
+      }
       | NEW TYPEID
       {
         $$ = new_($2);
+      }
+      | ISVOID expression
+      {
+        $$ = isvoid($2);
       }
       | expression '+' expression
       {
@@ -285,6 +324,18 @@
       | expression '=' expression
       {
         $$ = eq($1, $3);
+      }
+      | NOT expression
+      {
+        $$ = comp($2);
+      }
+      | '(' expression ')'
+      {
+        $$ = block(single_Expressions($2));
+      }
+      | OBJECTID
+      {
+        $$ = object($1);
       }
       | STR_CONST
       {
