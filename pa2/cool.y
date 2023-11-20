@@ -138,10 +138,24 @@
     %type <formal> formal
     %type <formals> formal_list
     
-    %type <expressions> expression_list
+    %type <features> non_empty_feature_list
+    %type <expressions> comma_expression_list
+    %type <expressions> colon_expression_list
     %type <expression> expression
-    /* Precedence declarations go here. */
+    %type <cases> case_list
+    %type <case_> case
     
+    /* Precedence declarations go here. */
+    %right ASSIGN
+    %left NOT
+    %nonassoc LE '<' '='
+    %left '*' '/'
+    %left '+' '-'
+    %left ISVOID
+    %left '~'
+    %left '@'
+    %left '.'
+     
     
     %%
     /* 
@@ -178,33 +192,40 @@
       }
     ;
     
-    /* Feature list may be empty, but no empty features in list. */
+
     feature_list
-      : feature /* single feature */
+      : non_empty_feature_list 
       {
-        $$ = single_Features($1);
-      }
-      | feature_list feature /* several classes */
-      {
-        $$ = append_Features($1, single_Features($2));
+        $$ = $1;
       }
       |
       {
         $$ = nil_Features();
       };
 
+      
+    non_empty_feature_list 
+      : feature
+      {
+        $$ = single_Features($1);
+      }
+      | non_empty_feature_list feature 
+      {
+        $$ = append_Features($1, single_Features($2));
+      };
+
     feature
-      : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
+      : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}' ';'
       {
         $$ = method($1, $3, $6, $8);
       }
-      | OBJECTID ':' TYPEID '<' '-' expression
+      | OBJECTID ':' TYPEID ASSIGN expression ';'
       {
-        $$ = attr($1, $3, $6);
+        $$ = attr($1, $3, $5);
       }
       | OBJECTID ':' TYPEID ';'
       {
-        $$ = attr($1, $3, 0);
+        $$ = attr($1, $3, no_expr());
       };
 
 
@@ -213,44 +234,63 @@
       {
         $$ = single_Formals($1);   
       }
-      | formal_list formal
+      | formal_list ',' formal
       {
-        $$ = append_Formals($1, single_Formals($2));
-      }
-      |
-      {
-        $$ = nil_Formals();
+        $$ = append_Formals($1, single_Formals($3));
       };
 
     formal
-      : OBJECTID ':' TYPEID ';'
+      : OBJECTID ':' TYPEID
       {
         $$ = formal($1, $3);
       };
 
-    expression_list
+
+    comma_expression_list
       : expression
       {
         $$ = single_Expressions($1);
       }
-      | expression_list expression
+      | comma_expression_list ',' expression
+      {
+        $$ = append_Expressions($1, single_Expressions($3));
+      };
+
+    colon_expression_list
+      : expression ';'
+      {
+        $$ = single_Expressions($1);
+      }
+      | colon_expression_list expression
       {
         $$ = append_Expressions($1, single_Expressions($2));
-      }
-      |
-      {
-        $$ = nil_Expressions();
       };
-    expression
-      : OBJECTID '<' '-' expression
+      
+    case_list 
+      : case
       {
-        $$ = assign($1, $4);
+        $$ = single_Cases($1);
       }
-      | expression '.' OBJECTID '('')'
+      | case_list case
+      {
+        $$ = append_Cases($1, single_Cases($2));
+      };
+
+    case : OBJECTID ':' TYPEID DARROW expression ';'
+      {
+        $$ = branch($1, $3, $5);
+      };
+
+    expression
+      : OBJECTID ASSIGN expression
+      {
+        $$ = assign($1, $3);
+      }
+      | expression '.' OBJECTID '(' ')'
       {
         $$ = dispatch($1, $3, nil_Expressions());
       }
-      | expression '.' OBJECTID '(' expression_list ')'
+      | expression '.' OBJECTID '(' comma_expression_list ')'
       {
         $$ = dispatch($1, $3, $5);
       }
@@ -258,21 +298,18 @@
       {
         $$ = static_dispatch($1, $3, $5, nil_Expressions());
       }
-      | expression '@' TYPEID '.' OBJECTID '(' expression_list ')'
+      | expression '@' TYPEID '.' OBJECTID '(' comma_expression_list ')'
       {
         $$ = static_dispatch($1, $3, $5, $7);
       }
-      /*
       | OBJECTID '(' ')'
       {
-        $$ = dispatch(nil_Expressions(), $1, nil_Expressions());
+        $$ = dispatch(no_expr(), $1, nil_Expressions()); 
       }
-      | OBJECTID '(' expression_list ')'
+      | OBJECTID '(' comma_expression_list ')'
       {
-        $$ = dispatch(nil_Expressions(), $1, $3);
+        $$ = dispatch(no_expr(), $1, $3); 
       }
-      // can't find proper constructor for these two?
-      */
       | IF expression THEN expression ELSE expression FI
       {
         $$ = cond($2, $4, $6);
@@ -281,13 +318,17 @@
       {
         $$ = loop($2, $4);
       }
-      | '{' expression_list ';' '}'
+      | '{' colon_expression_list ';' expression '}'
       {
-        $$ = block($2);
+        $$ = block(append_Expressions($2, single_Expressions($4)));
+      }
+      | CASE expression OF case_list ESAC
+      {
+        $$ = typcase($2, $4);
       }
       | NEW TYPEID
       {
-        $$ = new_($2);
+        $$ = new_($2);  
       }
       | ISVOID expression
       {
@@ -317,9 +358,9 @@
       {
         $$ = lt($1, $3);
       }
-      | expression '<' '=' expression
+      | expression LE expression
       {
-        $$ = leq($1, $4);
+        $$ = leq($1, $3);
       }
       | expression '=' expression
       {
@@ -348,10 +389,6 @@
       | BOOL_CONST
       {
         $$ = bool_const($1);
-      }
-      |
-      {
-        $$ = no_expr();
       };
     
     
