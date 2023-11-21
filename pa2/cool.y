@@ -138,19 +138,26 @@
     %type <formal> formal
     %type <formals> formal_list
     
+    %type <formals> non_empty_formal_list
     %type <features> non_empty_feature_list
+
+    %type <expressions> non_empty_comma_expression_list
     %type <expressions> comma_expression_list
-    %type <expressions> colon_expression_list
+
+    %type <expressions> non_empty_colon_expression_list
+
+    %type <expression> let_expression
     %type <expression> expression
     %type <cases> case_list
     %type <case_> case
     
+
     /* Precedence declarations go here. */
     %right ASSIGN
     %left NOT
     %nonassoc LE '<' '='
-    %left '*' '/'
     %left '+' '-'
+    %left '*' '/'
     %left ISVOID
     %left '~'
     %left '@'
@@ -190,7 +197,9 @@
         auto fn = stringtable.add_string(curr_filename);
         $$ = class_($2, $4, $6, fn);
       }
-    ;
+      | error ';'
+      {
+      };
     
 
     feature_list
@@ -226,15 +235,28 @@
       | OBJECTID ':' TYPEID ';'
       {
         $$ = attr($1, $3, no_expr());
+      }
+      | error ';'
+      {
       };
 
 
     formal_list
+      : non_empty_formal_list
+      {
+        $$ = $1;   
+      }
+      | 
+      {
+        $$ = nil_Formals();
+      };
+
+    non_empty_formal_list
       : formal
       {
         $$ = single_Formals($1);   
       }
-      | formal_list ',' formal
+      | non_empty_formal_list ',' formal
       {
         $$ = append_Formals($1, single_Formals($3));
       };
@@ -247,23 +269,36 @@
 
 
     comma_expression_list
+      : non_empty_comma_expression_list
+      {
+        $$ = $1;
+      }
+      |
+      {
+        $$ = nil_Expressions();
+      };
+
+    non_empty_comma_expression_list
       : expression
       {
         $$ = single_Expressions($1);
       }
-      | comma_expression_list ',' expression
+      | non_empty_comma_expression_list ',' expression
       {
         $$ = append_Expressions($1, single_Expressions($3));
       };
 
-    colon_expression_list
+    non_empty_colon_expression_list
       : expression ';'
       {
         $$ = single_Expressions($1);
       }
-      | colon_expression_list expression
+      | non_empty_colon_expression_list expression ';'
       {
         $$ = append_Expressions($1, single_Expressions($2));
+      }
+      | error ';'
+      {
       };
       
     case_list 
@@ -280,6 +315,32 @@
       {
         $$ = branch($1, $3, $5);
       };
+
+
+    let_expression 
+      : OBJECTID ':' TYPEID ASSIGN expression ',' let_expression
+      {
+        $$ = let($1,$3,$5,$7);
+      }
+      | OBJECTID ':' TYPEID ',' let_expression
+      {
+        $$ = let($1,$3,no_expr(),$5);
+      }
+      | OBJECTID ':' TYPEID ASSIGN expression IN expression
+      {
+        $$ = let($1,$3,$5,$7);
+      }
+      | OBJECTID ':' TYPEID IN expression
+      {
+        $$ = let($1,$3,no_expr(),$5);
+      }
+      | error IN expression
+      {
+      }
+      | error ',' let_expression
+      {
+      };
+
 
     expression
       : OBJECTID ASSIGN expression
@@ -304,11 +365,11 @@
       }
       | OBJECTID '(' ')'
       {
-        $$ = dispatch(no_expr(), $1, nil_Expressions()); 
+        $$ = dispatch(object(stringtable.add_string("self")), $1, nil_Expressions()); 
       }
       | OBJECTID '(' comma_expression_list ')'
       {
-        $$ = dispatch(no_expr(), $1, $3); 
+        $$ = dispatch(object(stringtable.add_string("self")), $1, $3); 
       }
       | IF expression THEN expression ELSE expression FI
       {
@@ -318,9 +379,13 @@
       {
         $$ = loop($2, $4);
       }
-      | '{' colon_expression_list ';' expression '}'
+      | '{' non_empty_colon_expression_list '}'
       {
-        $$ = block(append_Expressions($2, single_Expressions($4)));
+        $$ = block($2);
+      }
+      | LET let_expression
+      {
+        $$ = $2;
       }
       | CASE expression OF case_list ESAC
       {
@@ -372,7 +437,7 @@
       }
       | '(' expression ')'
       {
-        $$ = block(single_Expressions($2));
+        $$ = $2;
       }
       | OBJECTID
       {
