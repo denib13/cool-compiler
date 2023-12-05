@@ -11,3 +11,13 @@ pa1/grading/*
 pa2/grading/*
 !pa2/grading/RESULTS
 !pa2/grading/SCORE
+
+/pa3/*
+!pa3/semant.cc
+!pa3/semant.h
+!pa3/cool-tree.h
+!pa3/cool-tree.handcode.h
+!pa3/grading/
+pa3/grading/*
+!pa3/grading/RESULTS
+!pa3/grading/SCORE
