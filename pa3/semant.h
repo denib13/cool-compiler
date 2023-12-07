@@ -33,6 +33,9 @@ public:
   ostream& semant_error(Symbol filename, tree_node *t);
 };
 
-
+struct TypeEnvironment 
+{ 
+  SymbolTable<Symbol, Symbol>* O;
+};
 #endif
 

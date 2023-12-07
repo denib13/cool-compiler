@@ -237,6 +237,70 @@ ostream& ClassTable::semant_error()
      errors. Part 2) can be done in a second stage, when you want
      to build mycoolc.
  */
+void program_class::assign_types(TypeEnvironment typeenv) 
+{
+    for (int i = classes->first(); classes->more(i); i = classes->next(i)) 
+    { 
+        classes->nth(i)->assign_types(typeenv);
+    } 
+}
+void class__class::assign_types(TypeEnvironment typeenv) 
+{
+    for (int i = features->first(); features->more(i); i = features->next(i)) 
+    {
+        features->nth(i)->assign_types(typeenv);
+    }
+}
+void method_class::assign_types(TypeEnvironment typeenv)
+{
+    expr->assign_types(typeenv); 
+}
+void block_class::assign_types(TypeEnvironment typeenv) 
+{ 
+    int last = body->first(); 
+    for (int i = body->first(); body->more(i); i = body->next(i)) 
+    { 
+        body->nth(i)->assign_types(typeenv); 
+        last = i;
+    } 
+    type = body->nth(last)->get_type();
+}
+void let_class::assign_types(TypeEnvironment typeenv)
+{
+    typeenv.O->enterscope(); 
+    typeenv.O->addid(identifier, &type_decl);
+    body->assign_types(typeenv); 
+    type = body->get_type();
+    typeenv.O->exitscope();
+}
+void object_class::assign_types(TypeEnvironment typeenv) 
+{ 
+    type = *typeenv.O->lookup(name);
+}
+
+void no_expr_class::assign_types(TypeEnvironment typeenv) {} 
+void isvoid_class::assign_types(TypeEnvironment) {} 
+void new__class::assign_types(TypeEnvironment) {} 
+void string_const_class::assign_types(TypeEnvironment) {} 
+void bool_const_class::assign_types(TypeEnvironment) {} 
+void int_const_class::assign_types(TypeEnvironment) {} 
+void comp_class::assign_types(TypeEnvironment) {} 
+void leq_class::assign_types(TypeEnvironment) {} 
+void eq_class::assign_types(TypeEnvironment) {} 
+void lt_class::assign_types(TypeEnvironment) {} 
+void neg_class::assign_types(TypeEnvironment) {} 
+void divide_class::assign_types(TypeEnvironment) {} 
+void mul_class::assign_types(TypeEnvironment) {} 
+void sub_class::assign_types(TypeEnvironment) {} 
+void plus_class::assign_types(TypeEnvironment) {} 
+void typcase_class::assign_types(TypeEnvironment) {} 
+void loop_class::assign_types(TypeEnvironment) {} 
+void cond_class::assign_types(TypeEnvironment) {} 
+void dispatch_class::assign_types(TypeEnvironment) {} 
+void static_dispatch_class::assign_types(TypeEnvironment) {} 
+void assign_class::assign_types(TypeEnvironment) {}
+void attr_class::assign_types(TypeEnvironment) {}
+
 void program_class::semant()
 {
     initialize_constants();
@@ -245,10 +309,14 @@ void program_class::semant()
     ClassTable *classtable = new ClassTable(classes);
 
     /* some semantic analysis code may go here */
+    SymbolTable<Symbol, Symbol> O;
+    TypeEnvironment typeenv { &O };
+    assign_types(typeenv);
 
-    if (classtable->errors()) {
-	cerr << "Compilation halted due to static semantic errors." << endl;
-	exit(1);
+    if (classtable->errors()) 
+    {
+	    cerr << "Compilation halted due to static semantic errors." << endl;
+	    exit(1);
     }
 }
 

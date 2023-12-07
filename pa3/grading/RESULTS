@@ -35,7 +35,6 @@
 	-1 (io)	 IO methods
 	-1 (isvoid)	 isvoid expressions
 	-1 (letinit)	 Let with initialization (legal)
-	-1 (letnoinit)	 Let without initialization (legal)
 	-1 (letself)	 Let with self in binding (illegal)
 	-1 (letselftype)	 Let with SELF_TYPE variables (legal)
 	-1 (letshadows)	 Let with a variable shadowing one in an outer scope
