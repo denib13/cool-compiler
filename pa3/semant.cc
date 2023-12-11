@@ -85,7 +85,7 @@ static void initialize_constants(void)
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
-    /* Fill this in */
+    this->install_basic_classes();
 
 }
 
@@ -242,7 +242,7 @@ void program_class::assign_types(TypeEnvironment typeenv)
     for (int i = classes->first(); classes->more(i); i = classes->next(i)) 
     { 
         classes->nth(i)->assign_types(typeenv);
-    } 
+    }
 }
 void class__class::assign_types(TypeEnvironment typeenv) 
 {
@@ -253,7 +253,7 @@ void class__class::assign_types(TypeEnvironment typeenv)
 }
 void method_class::assign_types(TypeEnvironment typeenv)
 {
-    expr->assign_types(typeenv); 
+    expr->assign_types(typeenv);
 }
 void block_class::assign_types(TypeEnvironment typeenv) 
 { 
@@ -267,10 +267,18 @@ void block_class::assign_types(TypeEnvironment typeenv)
 }
 void let_class::assign_types(TypeEnvironment typeenv)
 {
-    typeenv.O->enterscope(); 
+    init->assign_types(typeenv);
+    //type = init->get_type();
+
+    typeenv.O->enterscope();
+    //typeenv.O->lookup(type_decl);
+
+    typeenv.O->lookup(identifier);
     typeenv.O->addid(identifier, &type_decl);
+    
     body->assign_types(typeenv); 
     type = body->get_type();
+    
     typeenv.O->exitscope();
 }
 void object_class::assign_types(TypeEnvironment typeenv) 
@@ -278,28 +286,186 @@ void object_class::assign_types(TypeEnvironment typeenv)
     type = *typeenv.O->lookup(name);
 }
 
-void no_expr_class::assign_types(TypeEnvironment typeenv) {} 
-void isvoid_class::assign_types(TypeEnvironment) {} 
-void new__class::assign_types(TypeEnvironment) {} 
-void string_const_class::assign_types(TypeEnvironment) {} 
-void bool_const_class::assign_types(TypeEnvironment) {} 
-void int_const_class::assign_types(TypeEnvironment) {} 
-void comp_class::assign_types(TypeEnvironment) {} 
-void leq_class::assign_types(TypeEnvironment) {} 
-void eq_class::assign_types(TypeEnvironment) {} 
-void lt_class::assign_types(TypeEnvironment) {} 
-void neg_class::assign_types(TypeEnvironment) {} 
-void divide_class::assign_types(TypeEnvironment) {} 
-void mul_class::assign_types(TypeEnvironment) {} 
-void sub_class::assign_types(TypeEnvironment) {} 
-void plus_class::assign_types(TypeEnvironment) {} 
-void typcase_class::assign_types(TypeEnvironment) {} 
-void loop_class::assign_types(TypeEnvironment) {} 
-void cond_class::assign_types(TypeEnvironment) {} 
-void dispatch_class::assign_types(TypeEnvironment) {} 
-void static_dispatch_class::assign_types(TypeEnvironment) {} 
-void assign_class::assign_types(TypeEnvironment) {}
-void attr_class::assign_types(TypeEnvironment) {}
+void no_expr_class::assign_types(TypeEnvironment typeenv) 
+{
+    this->set_type(No_type);
+} 
+void isvoid_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    Symbol type = e1->get_type();
+    this->set_type(Bool);
+} 
+void new__class::assign_types(TypeEnvironment typeenv) {} 
+void string_const_class::assign_types(TypeEnvironment typeenv) 
+{
+    this->set_type(Str);
+} 
+void bool_const_class::assign_types(TypeEnvironment typeenv) 
+{
+    this->set_type(Bool);
+} 
+void int_const_class::assign_types(TypeEnvironment typeenv) 
+{
+    this->set_type(Int);
+} 
+void comp_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    if(e1Type != Bool)
+    {
+        // TO DO: fix error throwing
+        this->set_type(Object);
+        cerr << "Error\n";
+    }
+    else
+        this->set_type(Bool);
+} 
+void leq_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        // TO DO: fix error throwing
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator <= to be of type Int\n";
+    }
+    else
+        this->set_type(Bool);
+} 
+void eq_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+    
+    // TO DO: fix error throwing
+    if(e1Type != Int || e1Type != Str || e1Type != Bool || e2Type != Int || e2Type != Str || e2Type != Bool)
+        cerr << "Illegal comparison with a basic type.\n";
+    if(e1Type != e2Type)
+        cerr << "Illegal comparison\n";
+    
+    this->set_type(Bool);
+} 
+void lt_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        // TO DO: fix error throwing
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator < to be of type Int\n";
+    }
+    else
+        this->set_type(Bool);
+} 
+void neg_class::assign_types(TypeEnvironment typeenv) 
+{
+    // doesn't work for some weird reason
+    e1->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    
+    if(e1Type != Int)
+    {
+        // TO DO: fix error throwing
+        this->set_type(Object);
+        cerr << "Argument of the operator '~' has type " 
+            << e1Type
+            << " instead of Int.\n";
+    }
+    else
+        this->set_type(Int);
+} 
+void divide_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator / to be of type Int\n";
+    }
+    else
+        this->set_type(Int);
+} 
+void mul_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator * to be of type Int\n";
+    }
+    else
+        this->set_type(Int);
+} 
+void sub_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator - to be of type Int\n";
+    }
+    else
+        this->set_type(Int);
+} 
+void plus_class::assign_types(TypeEnvironment typeenv) 
+{
+    e1->assign_types(typeenv);
+    e2->assign_types(typeenv);
+    Symbol e1Type = e1->get_type();
+    Symbol e2Type = e2->get_type();
+
+    if(e1Type != Int || e2Type != Int)
+    {
+        this->set_type(Object);
+        cerr << "Expected both arguments of operator + to be of type Int\n";
+    }
+    else
+        this->set_type(Int);
+} 
+void typcase_class::assign_types(TypeEnvironment typeenv) {} 
+void loop_class::assign_types(TypeEnvironment typeenv) 
+{
+    pred->assign_types(typeenv);
+    body->assign_types(typeenv);
+    Symbol predType = pred->get_type();
+    Symbol bodyType = body->get_type();
+
+    if(predType != Bool)
+    {
+        cerr << "Expected the predicate of while to be of type Bool\n";
+    }
+    else
+        this->set_type(Object);
+} 
+void cond_class::assign_types(TypeEnvironment typeenv) {} 
+void dispatch_class::assign_types(TypeEnvironment typeenv) {} 
+void static_dispatch_class::assign_types(TypeEnvironment typeenv) {} 
+void assign_class::assign_types(TypeEnvironment typeenv) {}
+void attr_class::assign_types(TypeEnvironment typeenv) {}
 
 void program_class::semant()
 {
@@ -309,10 +475,10 @@ void program_class::semant()
     ClassTable *classtable = new ClassTable(classes);
 
     /* some semantic analysis code may go here */
-    SymbolTable<Symbol, Symbol> O;
-    TypeEnvironment typeenv { &O };
+    SymbolTable<Symbol, Symbol> O, M, C;
+    TypeEnvironment typeenv { &O, &M, &C };
     assign_types(typeenv);
-
+    
     if (classtable->errors()) 
     {
 	    cerr << "Compilation halted due to static semantic errors." << endl;

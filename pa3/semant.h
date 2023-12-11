@@ -36,6 +36,8 @@ public:
 struct TypeEnvironment 
 { 
   SymbolTable<Symbol, Symbol>* O;
+  SymbolTable<Symbol, Symbol>* M;
+  SymbolTable<Symbol, Symbol>* C;
 };
 #endif
 

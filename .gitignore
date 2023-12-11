@@ -22,4 +22,4 @@ pa3/grading/*
 !pa3/grading/RESULTS
 !pa3/grading/SCORE
 
-/.vscode/*
+/.vscode
